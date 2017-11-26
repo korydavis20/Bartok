@@ -257,6 +257,34 @@ public class Utils : MonoBehaviour {
 	
 //============================ Bézier Curves ============================
 	
+    /// <summary>
+    /// While most Bézier curves are 3 or 4 points, it is possible to have
+    ///   any number of points using this recursive function.
+    /// LerpUnclamped is used to allow extrapolation.
+    /// </summary>
+    /// <param name="u">The amount of interpolation [0..1]</param>
+    /// <param name="vList">A List<Vector3> of points to interpolate</param>
+    /// <param name="i0">The index of the left extent of the used part of the list. 
+    ///   Defaults to 0.</param>
+    /// <param name="i1">The index of the right extent of the used part of the list. 
+    ///   Defaults to -1, which is then changed to the final element of the List.</param>
+    static public Vector3 Bezier( float u, List<Vector3> vList, int i0=0, int i1=-1 ) {
+        // Set i1 to the last element in vList
+        if (i1 == -1) i1 = vList.Count-1;
+        // If we are only looking at one element of vList, return it
+        if (i0 == i1) {
+            return( vList[i0] );
+        }
+        // Otherwise, call Bezier again with all but the leftmost used element of vList
+        Vector3 l = Bezier(u, vList, i0, i1-1);
+        // And call Bezier again with all but the rightmost used element of vList
+        Vector3 r = Bezier(u, vList, i0+1, i1);
+        // The result is the Lerp of these two recursive calls to Bezier
+        Vector3 res = Vector3.LerpUnclamped( l, r, u );
+        return( res );
+    }
+
+    /* This is the old version of this method from the first edition of the book. – JB
 	// While most Bézier curves are 3 or 4 points, it is possible to have
 	//   any number of points using this recursive function
 	// This uses the Utils.Lerp function because it needs to allow extrapolation
@@ -275,6 +303,7 @@ public class Utils : MonoBehaviour {
 		Vector3 res = Lerp( Bezier(u, vListL), Bezier(u, vListR), u );
 		return( res );
 	}
+    */
 	
 	// This version allows an Array or a series of Vector3s as input
 	static public Vector3 Bezier( float u, params Vector3[] vecs ) {
@@ -326,6 +355,44 @@ public class Utils : MonoBehaviour {
 	static public float Bezier( float u, params float[] vecs ) {
 		return( Bezier( u, new List<float>(vecs) ) );
 	}
+
+
+    /// <summary>
+    /// While most Bézier curves are 3 or 4 points, it is possible to have
+    ///   any number of points using this recursive function.
+    /// This uses the Utils.Lerp function rather than the built-in Vector3.Lerp 
+    ///   because it needs to allow extrapolation.
+    /// The 
+    /// </summary>
+    /// <param name="u">The amount of interpolation [0..1]</param>
+    /// <param name="vList">A List<Quaternion> of points to interpolate</param>
+    /// <param name="i0">The index of the left extent of the used part of the list. 
+    ///   Defaults to 0.</param>
+    /// <param name="i1">The index of the right extent of the used part of the list. 
+    ///   Defaults to -1, which is then changed to the final element of the List.</param>
+    static public Quaternion Bezier( float u, List<Quaternion> list, int i0=0, int i1=-1 ) {
+        // Set i1 to the last element in vList
+        if (i1 == -1) i1 = list.Count-1;
+
+        // If we are only looking at one element of vList, return it
+        if (i0 == i1) {
+            return( list[i0] );
+        }
+
+        // Otherwise, call Bezier again with all but the leftmost used element of vList
+        Quaternion l = Bezier(u, list, i0, i1-1);
+        // And call Bezier again with all but the rightmost used element of vList
+        Quaternion r = Bezier(u, list, i0+1, i1);
+        // The result is the Slerp (spherical lerp) of these two recursive calls to Bezier
+        Quaternion res = Quaternion.SlerpUnclamped( l, r, u );
+
+        return( res );
+    }
+
+    // This version allows an Array or a series of Quaternions as input
+    static public Quaternion Bezier( float u, params Quaternion[] arr ) {
+        return( Bezier( u, new List<Quaternion>(arr) ) );
+    }
 
 
 	
@@ -431,29 +498,8 @@ public class Easing {
 			u2 = EaseP( u2, cache[curve] );
 		}
 		return( u2 );
-		/*	
-			
-			// It's possible to pass in several comma-separated curves
-			string[] curvesA = curves.Split(',');
-			foreach (string curve in curvesA) {
-				if (curve == "") continue;
-				//string[] curveA = 
-			}
-			
-		}
-		//string[] curve = func.Split(',');
-		
-		foreach (string curve in curves) {
-			
-		}
-		
-		string[] funcSplit;
-		foreach (string f in funcs) {
-			funcSplit = f.Split('|');
-			
-		}
-		*/
 	}
+			
 	
 	static private void EaseParse( string curveIn ) {
 		EasingCachedCurve ecc = new EasingCachedCurve();
