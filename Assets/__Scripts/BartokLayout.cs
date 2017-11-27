@@ -26,6 +26,7 @@ public class BartokLayout : MonoBehaviour {
 	public PT_XMLReader xmlr; // Just like Deck, this has a PT_XMLReader
 	public PT_XMLHashtable xml; // This variable is for faster xml access
 	public Vector2 multiplier; // Sets the spacing of the tableau
+
 	// SlotDef references
 	public List<SlotDef> slotDefs; // The SlotDefs hands
 	public SlotDef drawPile;
@@ -38,6 +39,7 @@ public class BartokLayout : MonoBehaviour {
 		xmlr = new PT_XMLReader();
 		xmlr.Parse(xmlText); // The XML is parsed
 		xml = xmlr.xml["xml"][0]; // And xml is set as a shortcut to the XML
+
 		// Read in the multiplier, which sets card spacing
 		multiplier.x = float.Parse(xml["multiplier"][0].att("x"));
 		multiplier.y = float.Parse(xml["multiplier"][0].att("y"));
