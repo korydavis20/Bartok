@@ -14,4 +14,5 @@ public class TurnLight : MonoBehaviour {
 		transform.position += Bartok.CURRENT_PLAYER.handSlotDef.pos; 
 
 	}
+
 }
