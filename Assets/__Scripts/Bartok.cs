@@ -148,8 +148,15 @@ public class Bartok : MonoBehaviour {
 			num = (ndx+1)%4;
 		}
 		int lastPlayerNum = -1;
+
 		if (CURRENT_PLAYER != null) {
 			lastPlayerNum = CURRENT_PLAYER.playerNum;
+			// Check for Game Over and need to reshuffle discards
+
+			if ( CheckGameOver() ) {
+				return;
+			}
+
 		}
 
 		CURRENT_PLAYER = players[num];
@@ -160,6 +167,39 @@ public class Bartok : MonoBehaviour {
 		// Report the turn passing
 		Utils.tr("Bartok:PassTurn()", "Old: "+lastPlayerNum, 
 			"New: "+CURRENT_PLAYER.playerNum); 
+	}
+
+	public bool CheckGameOver() {
+		
+		// See if we need to reshuffle the discard pile into the draw pile
+		if (drawPile.Count == 0) {
+			List<Card> cards = new List<Card>();
+
+			foreach (CardBartok cb in discardPile) {
+				cards.Add (cb);
+			}
+
+			discardPile.Clear();
+			Deck.Shuffle( ref cards );
+			drawPile = UpgradeCardsList(cards);
+			ArrangeDrawPile();
+		}
+
+		// Check to see if the current player has won
+		if (CURRENT_PLAYER.hand.Count == 0) {
+
+			// The player that just played has won!
+			phase = TurnPhase.gameOver;
+			Invoke("RestartGame", 3); // b
+			return(true);
+		}
+
+		return(false);
+	}
+
+	public void RestartGame() {
+		CURRENT_PLAYER = null;
+		SceneManager.LoadScene("__Bartok_Scene_0");
 	}
 
 	// ValidPlay verifies that the card chosen can be played on the discard pile
@@ -210,27 +250,100 @@ public class Bartok : MonoBehaviour {
 	public CardBartok Draw() {
 
 		CardBartok cd = drawPile[0]; // Pull the 0th CardProspector
+
+		if (drawPile.Count == 0) { // If the drawPile is now empty
+
+			// We need to shuffle the discards into the drawPile
+			int ndx;
+
+			while (discardPile.Count > 0) {
+
+				// Pull a random card from the discard pile
+				ndx = Random.Range(0, discardPile.Count);
+				drawPile.Add( discardPile[ndx] );
+				discardPile.RemoveAt( ndx );
+			}
+
+			ArrangeDrawPile();
+
+			// Show the cards moving to the drawPile
+			float t = Time.time;
+
+			foreach (CardBartok tCB in drawPile) {
+				tCB.transform.localPosition = layout.discardPile.pos;
+				tCB.callbackPlayer = null;
+				tCB.MoveTo(layout.drawPile.pos);
+				tCB.timeStart = t;
+				t += 0.02f;
+				tCB.state = CBState.toDrawpile;
+				tCB.eventualSortLayer = "0";
+
+			}
+
+		}
+
 		drawPile.RemoveAt(0); // Then remove it from List<> drawPile
 		return(cd); // And return it
 
 	}
 
+	public void CardClicked(CardBartok tCB) {
 
-	/*
-	 * // This Update() is temporarily used to test adding cards to players' hands
-	void Update() { // d
-		if (Input.GetKeyDown(KeyCode.Alpha1)) {
-			players[0].AddCard(Draw ());
-		}
-		if (Input.GetKeyDown(KeyCode.Alpha2)) {
-			players[1].AddCard(Draw ());
-		}
-		if (Input.GetKeyDown(KeyCode.Alpha3)) {
-			players[2].AddCard(Draw ());
-		}
-		if (Input.GetKeyDown(KeyCode.Alpha4)) {
-			players[3].AddCard(Draw ());
+		if (CURRENT_PLAYER.type != PlayerType.human) return; // a
+
+		if (phase == TurnPhase.waiting) return; // b
+
+		switch (tCB.state) { // c
+
+		case CBState.drawpile: // d
+			// Draw the top card, not necessarily the one clicked.
+			CardBartok cb = CURRENT_PLAYER.AddCard( Draw() );
+			cb.callbackPlayer = CURRENT_PLAYER;
+			Utils.tr ("Bartok:CardClicked()","Draw",cb.name);
+			phase = TurnPhase.waiting;
+			break;
+
+		case CBState.hand: // e
+			
+			// Check to see whether the card is valid
+			if (ValidPlay(tCB)) {
+				CURRENT_PLAYER.RemoveCard(tCB);
+				MoveToTarget(tCB);
+				tCB.callbackPlayer = CURRENT_PLAYER;
+				Utils.tr("Bartok:CardClicked()","Play",tCB.name,
+					targetCard.name+" is target"); // f
+				phase = TurnPhase.waiting;
+
+			} else {
+				// Just ignore it but report what the player tried
+				Utils.tr("Bartok:CardClicked()","Attempted to Play",
+					tCB.name,targetCard.name+" is target"); // f
+			}
+
+			break;
 		}
 	}
-		*/
+
+
+
+	 // This Update() is temporarily used to test adding cards to players' hands
+	//void Update() { // d
+
+	//	if (Input.GetKeyDown(KeyCode.Alpha1)) {
+	//		players[0].AddCard(Draw ());
+	//	}
+
+	//	if (Input.GetKeyDown(KeyCode.Alpha2)) {
+	//		players[1].AddCard(Draw ());
+	//	}
+
+	//	if (Input.GetKeyDown(KeyCode.Alpha3)) {
+	//		players[2].AddCard(Draw ());
+	//	}
+
+	//	if (Input.GetKeyDown(KeyCode.Alpha4)) {
+	//		players[3].AddCard(Draw ());
+	//	}
+	//}
+
 }
